@@ -1,11 +1,12 @@
-[package]
-name = "crucible"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
 [workspace]
 members = [
     "contracts/crucible",
 ]
 resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+
+[workspace.dependencies]
+soroban-sdk = { version = "21", features = ["testutils"] }
