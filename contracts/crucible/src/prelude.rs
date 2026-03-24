@@ -5,4 +5,6 @@
 
 pub use crate::env::MockEnv;
 pub use crate::env::MockEnvBuilder;
+pub use crate::env::Duration;
+pub use crate::env::Stroops;
 pub use crate::token::MockToken;
