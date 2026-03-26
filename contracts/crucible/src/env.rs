@@ -3,7 +3,10 @@
 //! Provides `MockEnv` - a wrapper around `soroban_sdk::Env` with convenient
 //! helpers for testing, and `MockEnvBuilder` for fluent environment construction.
 
-use soroban_sdk::{testutils::Ledger, Address, Env};
+use soroban_sdk::{
+    testutils::{Events, Ledger},
+    Address, Env, IntoVal, Val, Vec as SorobanVec,
+};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -218,6 +221,44 @@ impl MockEnv {
         self.contract_ids
             .borrow_mut()
             .insert(type_name.to_string(), address);
+    }
+
+    /// Returns all events emitted during the test.
+    ///
+    /// Each event is a tuple consisting of (contract_address, topics, data).
+    pub fn events_all(&self) -> SorobanVec<(Address, SorobanVec<Val>, Val)> {
+        self.inner.events().all()
+    }
+
+    /// Returns events matching the given topics.
+    ///
+    /// Match is a partial match on topics — all topics in the filter must be
+    /// present at the start of the event's topics.
+    pub fn events_matching<T>(&self, topics: T) -> SorobanVec<(Address, SorobanVec<Val>, Val)>
+    where
+        T: IntoVal<Env, SorobanVec<Val>>,
+    {
+        let filter_topics: SorobanVec<Val> = topics.into_val(&self.inner);
+        let all_events = self.inner.events().all();
+        let mut matching = SorobanVec::new(&self.inner);
+
+        for event in all_events.iter() {
+            let topics = &event.1;
+            if topics.len() < filter_topics.len() {
+                continue;
+            }
+            let mut matches = true;
+            for (i, filter_topic) in filter_topics.iter().enumerate() {
+                if format!("{:?}", filter_topic) != format!("{:?}", topics.get(i as u32).unwrap()) {
+                    matches = false;
+                    break;
+                }
+            }
+            if matches {
+                matching.push_back(event);
+            }
+        }
+        matching
     }
 
     /// Check if cost tracking is enabled.

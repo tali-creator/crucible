@@ -11,5 +11,5 @@ default = ["derive"]
 derive = ["dep:crucible-macros"]
 
 [dependencies]
-soroban-sdk.workspace = true
+soroban-sdk = { workspace = true, features = ["testutils"] }
 crucible-macros = { workspace = true, optional = true }
