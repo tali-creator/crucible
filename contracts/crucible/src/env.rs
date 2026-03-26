@@ -136,8 +136,8 @@ impl MockEnv {
             .get(name)
             .cloned()
             .unwrap_or_else(|| panic!("Account '{}' not found. Ensure it was registered via MockEnvBuilder or AccountBuilder.", name));
-        
-                AccountHandle::new(self.clone(), name.to_string(), address)
+
+        AccountHandle::new(self.clone(), name.to_string(), address)
     }
 
     /// Get a contract ID by type.
@@ -311,16 +311,16 @@ impl MockEnv {
 
         // 3. Set recording auth mode
         self.inner.mock_auths(&[]); // Clear existing auths
-        self.inner.mock_all_auths(); 
+        self.inner.mock_all_auths();
 
         // 4. Run the call
         let result = f();
-        
+
         // 5. Capture results
         let instructions = budget.cpu_instruction_cost();
         // auths() returns Vec<(Address, AuthorizedInvocation)>
-        let auths = self.inner.auths().iter().map(|(a, _)| a.clone()).collect(); 
-        
+        let auths = self.inner.auths().iter().map(|(a, _)| a.clone()).collect();
+
         // 6. Rollback state
         // Note: Real state rollback requires a specific Soroban SDK version / API
         // which varies across 21.x releases. For now, we capture results but
@@ -331,7 +331,7 @@ impl MockEnv {
             (instructions / 100) as i64, // Fee estimation placeholder
             instructions,
             auths,
-            true, 
+            true,
             Some(result),
             Some(Box::new(f)),
         )
@@ -554,20 +554,31 @@ mod tests {
     #[contractimpl]
     impl SimTestContract {
         pub fn inc(env: Env, val: u32) -> u32 {
-            let mut count: u32 = env.storage().instance().get(&symbol_short!("count")).unwrap_or(0);
+            let mut count: u32 = env
+                .storage()
+                .instance()
+                .get(&symbol_short!("count"))
+                .unwrap_or(0);
             count += val;
-            env.storage().instance().set(&symbol_short!("count"), &count);
+            env.storage()
+                .instance()
+                .set(&symbol_short!("count"), &count);
             count
         }
 
         pub fn get(env: Env) -> u32 {
-            env.storage().instance().get(&symbol_short!("count")).unwrap_or(0)
+            env.storage()
+                .instance()
+                .get(&symbol_short!("count"))
+                .unwrap_or(0)
         }
     }
 
     #[test]
     fn test_simulation_workflow() {
-        let env = MockEnv::builder().with_contract::<SimTestContract>().build();
+        let env = MockEnv::builder()
+            .with_contract::<SimTestContract>()
+            .build();
         let contract_id = env.contract_id::<SimTestContract>();
         let client = SimTestContractClient::new(env.inner(), &contract_id);
 

@@ -67,8 +67,11 @@ impl<T> SimulatedTx<T> {
         if !self.would_succeed() {
             panic!("Cannot commit a failed transaction simulation.");
         }
-        
-        let re_run = self.re_run.take().expect("Transaction already committed or closure was consumed.");
+
+        let re_run = self
+            .re_run
+            .take()
+            .expect("Transaction already committed or closure was consumed.");
         re_run()
     }
 }
