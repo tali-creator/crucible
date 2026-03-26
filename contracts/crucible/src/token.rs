@@ -33,6 +33,10 @@ impl MockToken {
     /// let xlm = MockToken::xlm(&env);
     /// ```
     pub fn xlm(env: &MockEnv) -> Self {
+        if let Some(address) = env.xlm_token_address() {
+            return Self::from_address(env.inner(), address);
+        }
+
         // Create an admin for the XLM token
         let _admin = env
             .inner()
@@ -41,10 +45,20 @@ impl MockToken {
                 soroban_sdk::testutils::MockAuthContract {},
             );
         let sac = env.inner().register_stellar_asset_contract_v2(_admin);
-
+        let address = sac.address();
+        env.set_xlm_token_address(address.clone());
+        
         Self {
             env: env.inner().clone(),
-            address: sac.address(),
+            address,
+        }
+    }
+
+    /// Creates a MockToken from an existing address.
+    pub fn from_address(env: &Env, address: Address) -> Self {
+        Self {
+            env: env.clone(),
+            address,
         }
     }
 
@@ -210,116 +224,116 @@ mod tests {
     #[test]
     fn test_mint_and_check_balance() {
         let env = MockEnv::builder()
-            .with_account("alice", Stroops::xlm(100))
+                        .with_account("alice", Stroops::from(0))
             .build();
 
         let token = MockToken::xlm(&env);
         let alice = env.account("alice");
 
-        // Mint tokens to alice
-        token.mint(&alice, 500_000);
+                // Mint tokens to alice
+        token.mint(&alice.address(), 500_000);
 
         // Check balance
-        assert_eq!(token.balance(&alice), 500_000);
+        assert_eq!(token.balance(&alice.address()), 500_000);
     }
 
     #[test]
     fn test_transfer_between_accounts() {
         let env = MockEnv::builder()
-            .with_account("alice", Stroops::xlm(100))
-            .with_account("bob", Stroops::xlm(100))
+                        .with_account("alice", Stroops::from(0))
+            .with_account("bob", Stroops::from(0))
             .build();
 
         let token = MockToken::xlm(&env);
         let alice = env.account("alice");
         let bob = env.account("bob");
 
-        // Mint tokens to alice
-        token.mint(&alice, 1_000_000);
-        assert_eq!(token.balance(&alice), 1_000_000);
+                // Mint tokens to alice
+        token.mint(&alice.address(), 1_000_000);
+        assert_eq!(token.balance(&alice.address()), 1_000_000);
 
         // Transfer from alice to bob
-        token.transfer(&alice, &bob, 400_000);
+        token.transfer(&alice.address(), &bob.address(), 400_000);
 
         // Verify both balances
-        assert_eq!(token.balance(&alice), 600_000);
-        assert_eq!(token.balance(&bob), 400_000);
+        assert_eq!(token.balance(&alice.address()), 600_000);
+        assert_eq!(token.balance(&bob.address()), 400_000);
     }
 
     #[test]
     fn test_approve_and_check_allowance() {
         let env = MockEnv::builder()
-            .with_account("alice", Stroops::xlm(100))
-            .with_account("spender", Stroops::xlm(100))
+                        .with_account("alice", Stroops::from(0))
+            .with_account("spender", Stroops::from(0))
             .build();
 
         let token = MockToken::xlm(&env);
         let alice = env.account("alice");
         let spender = env.account("spender");
 
-        // Mint tokens to alice
-        token.mint(&alice, 1_000_000);
+                // Mint tokens to alice
+        token.mint(&alice.address(), 1_000_000);
 
         // Approve spender
-        token.approve(&alice, &spender, 500_000, 1000);
+        token.approve(&alice.address(), &spender.address(), 500_000, 1000);
 
         // Check allowance
-        assert_eq!(token.allowance(&alice, &spender), 500_000);
+        assert_eq!(token.allowance(&alice.address(), &spender.address()), 500_000);
     }
 
     #[test]
     fn test_clawback_reduces_balance() {
         let env = MockEnv::builder()
-            .with_account("alice", Stroops::xlm(100))
+                        .with_account("alice", Stroops::from(0))
             .build();
 
         let token = MockToken::xlm(&env);
         let alice = env.account("alice");
 
-        // Mint tokens to alice
-        token.mint(&alice, 1_000_000);
-        assert_eq!(token.balance(&alice), 1_000_000);
+                // Mint tokens to alice
+        token.mint(&alice.address(), 1_000_000);
+        assert_eq!(token.balance(&alice.address()), 1_000_000);
 
         // Burn some tokens (similar effect to clawback - reduces balance)
         // Note: clawback requires special issuer flags to be set on the SAC
-        token.burn(&alice, 300_000);
+        token.burn(&alice.address(), 300_000);
 
         // Verify balance reduced
-        assert_eq!(token.balance(&alice), 700_000);
+        assert_eq!(token.balance(&alice.address()), 700_000);
     }
 
     #[test]
     fn test_burn_reduces_balance() {
         let env = MockEnv::builder()
-            .with_account("alice", Stroops::xlm(100))
+                        .with_account("alice", Stroops::from(0))
             .build();
 
         let token = MockToken::xlm(&env);
         let alice = env.account("alice");
 
-        // Mint tokens to alice
-        token.mint(&alice, 1_000_000);
-        assert_eq!(token.balance(&alice), 1_000_000);
+                // Mint tokens to alice
+        token.mint(&alice.address(), 1_000_000);
+        assert_eq!(token.balance(&alice.address()), 1_000_000);
 
         // Burn some tokens
-        token.burn(&alice, 200_000);
+        token.burn(&alice.address(), 200_000);
 
         // Verify balance reduced
-        assert_eq!(token.balance(&alice), 800_000);
+        assert_eq!(token.balance(&alice.address()), 800_000);
     }
 
     #[test]
     fn test_new_token_with_symbol_and_decimals() {
         let env = MockEnv::builder()
-            .with_account("alice", Stroops::xlm(100))
+                        .with_account("alice", Stroops::from(0))
             .build();
 
         let token = MockToken::new(&env, "USDC", 6);
         let alice = env.account("alice");
 
-        // Mint tokens
-        token.mint(&alice, 1_000_000_000); // 1000 USDC with 6 decimals
+                // Mint tokens
+        token.mint(&alice.address(), 1_000_000_000); // 1000 USDC with 6 decimals
 
-        assert_eq!(token.balance(&alice), 1_000_000_000);
+        assert_eq!(token.balance(&alice.address()), 1_000_000_000);
     }
 }

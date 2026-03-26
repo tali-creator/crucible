@@ -3,6 +3,7 @@
 //! Provides `MockEnv` - a wrapper around `soroban_sdk::Env` with convenient
 //! helpers for testing, and `MockEnvBuilder` for fluent environment construction.
 
+use crate::account::AccountHandle;
 use soroban_sdk::{
     testutils::{Events, Ledger},
     Address, Env, IntoVal, Val, Vec as SorobanVec,
@@ -106,10 +107,12 @@ impl Stroops {
 }
 
 /// A wrapper around the Soroban test environment with additional helpers.
+#[derive(Clone)]
 pub struct MockEnv {
     inner: Env,
     accounts: Rc<RefCell<HashMap<String, Address>>>,
     contract_ids: Rc<RefCell<HashMap<String, Address>>>,
+    xlm_token_address: Rc<RefCell<Option<Address>>>,
     track_costs: bool,
 }
 
@@ -124,13 +127,15 @@ impl MockEnv {
         MockEnvBuilder::new()
     }
 
-    /// Get an account address by name.
-    pub fn account(&self, name: &str) -> Address {
-        self.accounts
+    /// Get an account handle by name.
+    pub fn account(&self, name: &str) -> AccountHandle {
+        let address = self.accounts
             .borrow()
             .get(name)
             .cloned()
-            .unwrap_or_else(|| panic!("Account '{}' not found", name))
+            .unwrap_or_else(|| panic!("Account '{}' not found. Ensure it was registered via MockEnvBuilder or AccountBuilder.", name));
+        
+                AccountHandle::new(self.clone(), name.to_string(), address)
     }
 
     /// Get a contract ID by type.
@@ -261,6 +266,16 @@ impl MockEnv {
         matching
     }
 
+    /// Set the XLM token address for the environment.
+    pub fn set_xlm_token_address(&self, address: Address) {
+        *self.xlm_token_address.borrow_mut() = Some(address);
+    }
+
+    /// Get the XLM token address for the environment, if set.
+    pub fn xlm_token_address(&self) -> Option<Address> {
+        self.xlm_token_address.borrow().clone()
+    }
+
     /// Check if cost tracking is enabled.
     pub fn track_costs(&self) -> bool {
         self.track_costs
@@ -273,6 +288,7 @@ impl Default for MockEnv {
             inner: Env::default(),
             accounts: Rc::new(RefCell::new(HashMap::new())),
             contract_ids: Rc::new(RefCell::new(HashMap::new())),
+            xlm_token_address: Rc::new(RefCell::new(None)),
             track_costs: false,
         }
     }
@@ -281,12 +297,14 @@ impl Default for MockEnv {
 /// Builder for constructing a `MockEnv` with custom configuration.
 pub struct MockEnvBuilder {
     env: MockEnv,
+    account_configs: Vec<(String, Stroops)>,
 }
 
 impl MockEnvBuilder {
     fn new() -> Self {
         Self {
             env: MockEnv::default(),
+            account_configs: Vec::new(),
         }
     }
 
@@ -361,19 +379,8 @@ impl MockEnvBuilder {
     }
 
     /// Add a named account with XLM balance.
-    pub fn with_account(self, name: &str, balance: Stroops) -> Self {
-        // Create a mock auth contract for the account
-        let address = self
-            .env
-            .inner
-            .register_contract::<soroban_sdk::testutils::MockAuthContract>(
-                None,
-                soroban_sdk::testutils::MockAuthContract {},
-            );
-        self.env.register_account(name, address);
-        // Note: XLM balance tracking would require ledger entry manipulation
-        // For now, we store the balance conceptually
-        let _ = balance; // Use the balance parameter
+    pub fn with_account(mut self, name: &str, balance: Stroops) -> Self {
+        self.account_configs.push((name.to_string(), balance));
         self
     }
 
@@ -385,6 +392,14 @@ impl MockEnvBuilder {
 
     /// Build the `MockEnv`.
     pub fn build(self) -> MockEnv {
+        // We'll use the builder's env to construct the accounts.
+        // This ensures they are registered in the MockEnv.
+        for (name, balance) in self.account_configs {
+            crate::account::AccountBuilder::new(&self.env)
+                .name(&name)
+                .fund_xlm(balance)
+                .build();
+        }
         self.env
     }
 }

@@ -3,6 +3,8 @@
 //! This module provides convenient access to all commonly used types
 //! and utilities from the crucible testing framework.
 
+pub use crate::account::AccountBuilder;
+pub use crate::account::AccountHandle;
 pub use crate::env::Duration;
 pub use crate::env::MockEnv;
 pub use crate::env::MockEnvBuilder;
