@@ -390,10 +390,7 @@ mod tests {
             NotFound,
         }
 
-        assert_reverts!(
-            panic!("{:?}", TestError::Unauthorized),
-            TestError::NotFound
-        );
+        assert_reverts!(panic!("{:?}", TestError::Unauthorized), TestError::NotFound);
     }
 
     #[test]
@@ -428,17 +425,13 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(
-        expected = "assertion failed: values not within tolerance"
-    )]
+    #[should_panic(expected = "assertion failed: values not within tolerance")]
     fn test_assert_approx_eq_exceeds_tolerance() {
         assert_approx_eq!(950, 1000, 10);
     }
 
     #[test]
-    #[should_panic(
-        expected = "assertion failed: values not within tolerance"
-    )]
+    #[should_panic(expected = "assertion failed: values not within tolerance")]
     fn test_assert_approx_eq_negative_difference() {
         assert_approx_eq!(1050, 1000, 10);
     }
@@ -454,9 +447,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(
-        expected = "assertion failed: values not within tolerance"
-    )]
+    #[should_panic(expected = "assertion failed: values not within tolerance")]
     fn test_assert_approx_eq_floats_exceeds() {
         assert_approx_eq!(99.0, 100.0, 0.5);
     }

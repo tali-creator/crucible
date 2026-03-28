@@ -9,6 +9,7 @@ crate-type = ["cdylib", "rlib"]
 [features]
 default = ["derive"]
 derive = ["dep:crucible-macros"]
+snapshots = []
 
 [dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }

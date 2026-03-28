@@ -284,10 +284,27 @@ impl MockEnv {
     }
 
     /// Measure the execution cost of a contract call.
+    ///
+    /// # Panics
+    /// Panics if cost tracking was not enabled during environment construction.
+    /// Enable cost tracking using `MockEnvBuilder::track_costs()`.
+    ///
+    /// # Example
+    /// ```ignore
+    /// let env = MockEnv::builder().track_costs().build();
+    /// let cost = env.measure(|| {
+    ///     // Your contract call here
+    /// });
+    /// println!("{}", cost.report());
+    /// ```
     pub fn measure<F, T>(&self, f: F) -> CostReport
     where
         F: FnOnce() -> T,
     {
+        if !self.track_costs {
+            panic!("MockEnv::measure() requires track_costs() to be enabled during environment construction");
+        }
+
         let mut budget = self.inner.budget();
         budget.reset_default();
         let _ = f();
@@ -608,5 +625,101 @@ mod tests {
         // Currently simulate() does not rollback, so commit() adds to the already simulated state.
         assert_eq!(result, 20);
         assert_eq!(client.get(), 20);
+    }
+
+    #[test]
+    fn measure_returns_non_zero_instructions() {
+        let env = MockEnv::builder()
+            .with_contract::<SimTestContract>()
+            .track_costs()
+            .build();
+
+        let contract_id = env.contract_id::<SimTestContract>();
+        let client = SimTestContractClient::new(env.inner(), &contract_id);
+
+        let cost = env.measure(|| {
+            client.inc(&5);
+        });
+
+        assert!(
+            cost.instructions() > 0,
+            "Instruction count should be non-zero"
+        );
+        assert_eq!(cost.fee_stroops(), (cost.instructions() / 100) as i64);
+    }
+
+    #[test]
+    #[should_panic(expected = "requires track_costs")]
+    fn measure_panics_without_tracking() {
+        let env = MockEnv::builder().build();
+
+        env.measure(|| {
+            // This closure should never run because measure() should panic first
+            10u32
+        });
+    }
+
+    #[test]
+    fn report_returns_non_empty_string() {
+        let cost = crate::cost::CostReport::new(1_234_567, 45_678);
+        let report = cost.report();
+
+        assert!(!report.is_empty(), "Report should not be empty");
+        // Check for expected labels
+        assert!(
+            report.contains("Instructions"),
+            "Report should contain 'Instructions'"
+        );
+        assert!(
+            report.contains("Memory (bytes)"),
+            "Report should contain 'Memory (bytes)'"
+        );
+        assert!(
+            report.contains("Estimated fee"),
+            "Report should contain 'Estimated fee'"
+        );
+        // Check for box-drawing characters
+        assert!(
+            report.contains("┌"),
+            "Report should contain box-drawing characters"
+        );
+    }
+
+    #[test]
+    fn trivial_contract_call_under_cost_limit() {
+        let env = MockEnv::builder()
+            .with_contract::<SimTestContract>()
+            .track_costs()
+            .build();
+
+        let contract_id = env.contract_id::<SimTestContract>();
+        let client = SimTestContractClient::new(env.inner(), &contract_id);
+
+        let cost = env.measure(|| {
+            client.get();
+        });
+
+        // Verify we have reasonable instruction counts (should be far below typical limits)
+        assert!(cost.instructions() > 0, "Should consume some instructions");
+        assert!(
+            cost.instructions() < 5_000_000,
+            "Trivial contract call should be under 5M instructions"
+        );
+    }
+
+    #[test]
+    fn cost_report_formatting_with_commas() {
+        let cost = crate::cost::CostReport::new(1_000_000, 50_000);
+        let report = cost.report();
+
+        // Should contain comma-separated numbers
+        assert!(
+            report.contains("1,000,000"),
+            "Large numbers should be formatted with commas"
+        );
+        assert!(
+            report.contains("50,000"),
+            "Memory should be formatted with commas"
+        );
     }
 }
