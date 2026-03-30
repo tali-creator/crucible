@@ -48,7 +48,7 @@ macro_rules! assert_reverts {
 ///
 /// Checks that the event log contains an entry with the given contract address,
 /// topics tuple, and data value. Other events may also be present. Topics are
-/// passed as a tuple and converted to `Val` via [`soroban_sdk::IntoVal`].
+/// passed as a tuple and converted to `Vec<Val>` via [`soroban_sdk::IntoVal`].
 ///
 /// # Example
 ///
@@ -68,13 +68,25 @@ macro_rules! assert_emitted {
         use soroban_sdk::IntoVal as _;
         let __env = $env.inner();
         let __events = __env.events().all();
-        let __expected = (
-            $contract_id.clone(),
-            ($topics).into_val(__env),
-            ($data).into_val(__env),
-        );
+        let __expected_vec = soroban_sdk::vec![
+            __env,
+            (
+                $contract_id.clone(),
+                ($topics).into_val(__env),
+                ($data).into_val(__env),
+            )
+        ];
+        let mut __found = false;
+        let mut __i = 0u32;
+        while __i < __events.len() {
+            if __events.slice(__i..__i + 1) == __expected_vec {
+                __found = true;
+                break;
+            }
+            __i += 1;
+        }
         assert!(
-            __events.iter().any(|e| e == __expected),
+            __found,
             "Expected event was not found in the event log. Events: {:?}",
             __events
         );

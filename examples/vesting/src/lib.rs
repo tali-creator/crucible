@@ -42,6 +42,7 @@ impl Vesting {
     /// Initialise the vesting schedule.
     ///
     /// Transfers `total` tokens from `admin` into this contract.
+    #[allow(clippy::too_many_arguments)]
     pub fn initialize(
         env: Env,
         admin: Address,
