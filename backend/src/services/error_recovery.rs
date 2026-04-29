@@ -29,6 +29,12 @@ pub struct ErrorManager {
     tasks: Arc<RwLock<Vec<RecoveryTask>>>,
 }
 
+impl Default for ErrorManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ErrorManager {
     pub fn new() -> Self {
         Self {

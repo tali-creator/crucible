@@ -16,6 +16,12 @@ pub struct MetricsExporter {
     current_metrics: Arc<RwLock<SystemMetrics>>,
 }
 
+impl Default for MetricsExporter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MetricsExporter {
     pub fn new() -> Self {
         Self {

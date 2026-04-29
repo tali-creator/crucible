@@ -100,7 +100,7 @@ impl FeatureFlagService {
     /// # Errors
     /// Returns [`FlagError::NotFound`] if the flag doesn't exist.
     pub async fn is_enabled(&self, key: &str) -> Result<bool, FlagError> {
-        let cache_key = format!("flag:{}", key);
+        let cache_key = format!("flag:{key}");
 
         // Try cache first
         let mut conn = self.redis.get_multiplexed_async_connection().await?;
@@ -228,7 +228,7 @@ impl FeatureFlagService {
 
     /// Invalidate the Redis cache for a specific flag.
     async fn invalidate_cache(&self, key: &str) -> Result<(), FlagError> {
-        let cache_key = format!("flag:{}", key);
+        let cache_key = format!("flag:{key}");
         let mut conn = self.redis.get_multiplexed_async_connection().await?;
         let deleted: i32 = conn.del(&cache_key).await?;
         if deleted > 0 {
