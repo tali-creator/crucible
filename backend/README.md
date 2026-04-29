@@ -27,6 +27,18 @@ The backend runs several background workers for system health and data consisten
 | `log_alerts` | Threshold-based alerting over the log pipeline with sliding-window evaluation |
 | `feature_flags` | Feature flag management backed by PostgreSQL with Redis caching |
 
+### Middleware
+
+| Name | Description |
+|---|---|
+| `logging` | Captures request/response metadata, latency, and status codes; integrated with `tracing` and `log_aggregator` |
+
+### Database (`src/db/`)
+
+| Module | Description |
+|---|---|
+| `seeds` | Idempotent seed data for development and test environments |
+
 ## Tech Stack
 - **Web Framework**: Axum (async Rust)
 - **Runtime**: Tokio
@@ -71,4 +83,3 @@ cargo test -p backend --test load_tests -- --nocapture
 - `src/jobs/` – Background job definitions (Apalis)
 - `src/services/` – Business logic and external integrations
 - `src/telemetry/` – Observability and logging setup
-
