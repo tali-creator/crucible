@@ -34,6 +34,7 @@ The backend runs several background workers for system health and data consisten
 | `log_aggregator` | Async MPSC-based log pipeline; persists entries via a background worker |
 | `log_alerts` | Threshold-based alerting over the log pipeline with sliding-window evaluation |
 | `feature_flags` | Feature flag management backed by PostgreSQL with Redis caching |
+| `test_coverage` | Code coverage tracking and caching for CI integration |
 | `tracing` | OpenTelemetry tracing service with OTLP exporter |
 
 ## Tech Stack
@@ -49,6 +50,10 @@ The backend runs several background workers for system health and data consisten
 
 | Method | Path | Description |
 |---|---|---|
+| `GET` | `/api/status` | System health, metrics, and active recovery tasks |
+| `POST` | `/api/profile` | Trigger a profiling collection run |
+| `POST` | `/api/coverage` | Submit a new code coverage report |
+| `GET` | `/api/coverage/:project` | Get latest coverage report for a specific project |
 | `GET` | `/` | Base API greeting |
 | `GET` | `/.well-known/stellar.toml` | Stellar network metadata |
 | `GET` | `/api/v1/profiling/metrics` | Detailed performance metrics (OpenAPI) |
